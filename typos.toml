@@ -1,0 +1,7 @@
+files.extend-exclude = [
+  "dev",
+]
+
+[default.extend-words]
+Ons = "Ons"
+Lsat = "Lsat"
