@@ -1,0 +1,11 @@
+coverage
+lib
+tmp
+charts
+protos
+.vscode
+
+.github
+ci/**/*
+
+**/*.md
