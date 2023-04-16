@@ -1,0 +1,3 @@
+type GaloyConfig = {
+  endpoint: string
+}
