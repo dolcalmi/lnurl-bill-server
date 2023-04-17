@@ -3,6 +3,7 @@ import { request } from "graphql-request"
 import { galoyConfig } from "@config"
 
 import {
+  InvalidInvoiceError,
   InvalidUsernameError,
   InvoiceRequestError,
   UnknownGaloyServiceError,
@@ -11,15 +12,25 @@ import {
 import { baseLogger } from "@services/logger"
 import { wrapAsyncFunctionsToRunInSpan } from "@services/tracing"
 
-import { GaloyWalletCurrency } from "@domain/galoy"
+import {
+  GaloyInvoiceStatus,
+  GaloyWalletCurrency,
+  toGaloyInvoiceStatus,
+} from "@domain/galoy"
 
-import { createBtcInvoiceMutation, createUsdInvoiceMutation, walletQuery } from "./gql"
+import {
+  createBtcInvoiceMutation,
+  createUsdInvoiceMutation,
+  invoiceStatusQuery,
+  walletQuery,
+} from "./gql"
 
 export const GaloyService = (): IGaloyService => {
   const createInvoice = async ({
     username,
     amount,
     memo,
+    descriptionHash,
   }: GaloyCreateInvoiceArgs): Promise<LnInvoice | GaloyServiceError> => {
     try {
       const walletVariables = {
@@ -40,8 +51,9 @@ export const GaloyService = (): IGaloyService => {
       const invoiceVariables = {
         input: {
           recipientWalletId,
-          amount: amount.amount,
+          amount: Number(amount.amount),
           memo,
+          descriptionHash,
         },
       }
       const createInvoiceMutation =
@@ -65,8 +77,39 @@ export const GaloyService = (): IGaloyService => {
 
       return invoice.paymentRequest
     } catch (error) {
-      baseLogger.info({ error, username, amount, memo }, "Unknown galoy service error")
-      return new UnknownGaloyServiceError(error.message || error)
+      baseLogger.info(
+        { error, username, amount, memo, descriptionHash },
+        "Unknown galoy service error",
+      )
+      return parseGaloyServiceError(error)
+    }
+  }
+
+  const checkInvoiceStatus = async ({
+    invoice,
+  }: GaloyCheckInvoiceStatusArgs): Promise<GaloyInvoiceStatus | GaloyServiceError> => {
+    try {
+      const variables = {
+        input: {
+          paymentRequest: invoice,
+        },
+      }
+
+      const invoiceData: InvoiceStatusQueryResponse = await request(
+        galoyConfig.endpoint,
+        invoiceStatusQuery,
+        variables,
+      )
+
+      const status = invoiceData.lnInvoice?.status
+      if (!status) {
+        return new UnknownGaloyServiceError("Error getting invoice status")
+      }
+
+      return toGaloyInvoiceStatus(status)
+    } catch (error) {
+      baseLogger.info({ error, invoice }, "Unknown galoy service error")
+      return parseGaloyServiceError(error)
     }
   }
 
@@ -74,6 +117,40 @@ export const GaloyService = (): IGaloyService => {
     namespace: "services.galoy",
     fns: {
       createInvoice,
+      checkInvoiceStatus,
     },
   })
 }
+
+export const parseGaloyServiceError = (err: Error | string) => {
+  const parseError = () => {
+    if (typeof err === "string") {
+      return err
+    }
+
+    const gqlError = err as GraphQlErrorResponse
+    if (gqlError.response && gqlError.response.errors) {
+      const errors = gqlError.response.errors
+      return (errors.length > 0 && errors[0].message) || ""
+    }
+
+    return err.message
+  }
+
+  const errMsg = parseError()
+  const match = (knownErrDetail: RegExp): boolean => knownErrDetail.test(errMsg)
+
+  switch (true) {
+    case match(KnownGaloyServiceErrorMessages.InvalidUsername):
+      return new InvalidUsernameError()
+    case match(KnownGaloyServiceErrorMessages.InvalidPaymentRequest):
+      return new InvalidInvoiceError()
+    default:
+      return new UnknownGaloyServiceError(errMsg)
+  }
+}
+
+const KnownGaloyServiceErrorMessages = {
+  InvalidPaymentRequest: /Invalid value for LnPaymentRequest/,
+  InvalidUsername: /Account does not exist for username/,
+} as const
