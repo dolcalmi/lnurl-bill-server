@@ -9,6 +9,14 @@ export const walletQuery = gql`
   }
 `
 
+export const invoiceStatusQuery = gql`
+  query LnInvoicePaymentStatus($input: LnInvoicePaymentStatusInput!) {
+    lnInvoice: lnInvoicePaymentStatus(input: $input) {
+      status
+    }
+  }
+`
+
 export const createBtcInvoiceMutation = gql`
   mutation createInvoice($input: LnInvoiceCreateOnBehalfOfRecipientInput!) {
     lnInvoice: lnInvoiceCreateOnBehalfOfRecipient(input: $input) {
