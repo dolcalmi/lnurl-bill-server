@@ -1,10 +1,5 @@
 import { InvalidStatusError } from "./errors"
 
-export const GaloyWalletCurrency = {
-  Usd: "USD",
-  Btc: "BTC",
-} as const
-
 export const GaloyInvoiceStatus = {
   Expired: "EXPIRED",
   Pending: "PENDING",

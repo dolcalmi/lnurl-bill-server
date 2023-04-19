@@ -6,7 +6,8 @@ import {
   InvoiceRequestError,
   UnknownGaloyServiceError,
 } from "@domain/galoy/errors"
-import { GaloyInvoiceStatus, GaloyWalletCurrency } from "@domain/galoy"
+import { WalletCurrency } from "@domain/shared"
+import { GaloyInvoiceStatus } from "@domain/galoy"
 
 import { GaloyService } from "@services/galoy"
 
@@ -17,8 +18,8 @@ const mockedRequest = request as jest.MockedFunction<typeof request>
 describe("createInvoice", () => {
   const service = GaloyService()
   const username = "testuser" as GaloyUsername
-  const amount = { currency: GaloyWalletCurrency.Btc, amount: 1000n }
-  const usdAmount = { currency: GaloyWalletCurrency.Usd, amount: 1000n }
+  const amount = { currency: WalletCurrency.BtcSats, amount: 1000n }
+  const usdAmount = { currency: WalletCurrency.UsdCents, amount: 1000n }
   const memo = "Test memo" as GaloyMemo
 
   afterEach(() => {
