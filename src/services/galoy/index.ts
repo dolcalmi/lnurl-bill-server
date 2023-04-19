@@ -8,15 +8,11 @@ import {
   InvoiceRequestError,
   UnknownGaloyServiceError,
 } from "@domain/galoy/errors"
+import { WalletCurrency } from "@domain/shared"
+import { toGaloyInvoiceStatus } from "@domain/galoy"
 
 import { baseLogger } from "@services/logger"
 import { wrapAsyncFunctionsToRunInSpan } from "@services/tracing"
-
-import {
-  GaloyInvoiceStatus,
-  GaloyWalletCurrency,
-  toGaloyInvoiceStatus,
-} from "@domain/galoy"
 
 import {
   createBtcInvoiceMutation,
@@ -57,7 +53,7 @@ export const GaloyService = (): IGaloyService => {
         },
       }
       const createInvoiceMutation =
-        amount.currency === GaloyWalletCurrency.Usd
+        amount.currency === WalletCurrency.UsdCents
           ? createUsdInvoiceMutation
           : createBtcInvoiceMutation
       const invoiceData: CreateInvoiceMutationResponse = await request(
