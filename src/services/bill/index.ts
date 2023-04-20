@@ -4,6 +4,7 @@ import axios from "axios"
 import {
   BillIssuerTomlError,
   BillNotFoundError,
+  BillStatusUpdateError,
   InvalidBillError,
   UnknownBillServiceError,
 } from "@domain/bill/errors"
@@ -11,6 +12,7 @@ import {
 import { baseLogger } from "@services/logger"
 import { wrapAsyncFunctionsToRunInSpan } from "@services/tracing"
 import { WalletCurrency } from "@domain/shared"
+import { BillPaymentStatus } from "@domain/bill"
 
 const TOML_SUBDOMAIN = "blink"
 const TOML_FILE_NAME = "blink.toml"
@@ -83,11 +85,43 @@ export const BillService = (): IBillService => {
     }
   }
 
+  const notifyPaymentReceived = async ({
+    domain,
+    reference,
+  }: BillNotifyPaymentReceivedArgs): Promise<true | BillServiceError> => {
+    try {
+      const settings = await resolveSettings({ domain })
+      if (settings instanceof Error) return settings
+
+      const { status, data } = await axios.put<GetBillResponse>(
+        `${settings.billServerUrl}/bills/`,
+        {
+          reference,
+          status: BillPaymentStatus.Paid,
+        },
+      )
+      if (status === 404 || !data) return new BillNotFoundError("Bill not found")
+      if (status >= 400) return new UnknownBillServiceError("Invalid data")
+
+      const bill = translateToBill(data)
+      if (bill instanceof Error) return bill
+      if (bill.reference !== reference) return new InvalidBillError("Invalid reference")
+      if (bill.status !== BillPaymentStatus.Paid)
+        return new BillStatusUpdateError("Status was not updated")
+
+      return true
+    } catch (error) {
+      baseLogger.info({ error, domain, reference }, "Unknown bill service error")
+      return parseBillServiceError(error)
+    }
+  }
+
   return wrapAsyncFunctionsToRunInSpan({
     namespace: "services.bill",
     fns: {
       resolveSettings,
       lookupByRef,
+      notifyPaymentReceived,
     },
   })
 }
@@ -97,6 +131,10 @@ const translateToBill = (data: GetBillResponse): Bill | InvalidBillError => {
   const hasValidAmount = data.amount > 0 && currencies.includes(data.currency)
   if (!hasValidAmount) return new InvalidBillError("Invalid amount")
 
+  const statuses = Object.values(BillPaymentStatus)
+  const hasValidStatus = statuses.includes(data.status)
+  if (!hasValidStatus) return new InvalidBillError("Invalid status")
+
   return {
     reference: data.reference as BillRef,
     amount: {
@@ -104,6 +142,7 @@ const translateToBill = (data: GetBillResponse): Bill | InvalidBillError => {
       currency: data.currency,
     },
     description: (data.description || "") as BillDescription,
+    status: data.status,
   }
 }
 

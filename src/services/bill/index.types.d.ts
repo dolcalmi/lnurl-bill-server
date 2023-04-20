@@ -3,4 +3,5 @@ type GetBillResponse = {
   amount: bigint
   currency: WalletCurrency
   description: string
+  status: BillPaymentStatus
 }

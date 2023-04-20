@@ -1,4 +1,6 @@
 type BillServiceError = import("./errors").BillServiceError
+type BillPaymentStatus =
+  typeof import("./index").BillPaymentStatus[keyof typeof import("./index").BillPaymentStatus]
 
 type BillIssuerPubKey = Brand<string, "BillIssuerPubKey">
 type BillRef = Brand<string, "BillRef">
@@ -16,6 +18,7 @@ type Bill = {
   reference: BillRef
   description: BillDescription
   amount: BtcSatsWalletAmount | UsdCentsWalletAmount
+  status: BillPaymentStatus
 }
 
 type BillResolveSettingsArgs = {
@@ -29,7 +32,15 @@ type BillLookupByRefArgs = {
   domain: Domain
 }
 
+type BillNotifyPaymentReceivedArgs = {
+  reference: BillRef
+  domain: Domain
+}
+
 interface IBillService {
   resolveSettings(args: BillResolveSettingsArgs): Promise<BillIssuer | BillServiceError>
   lookupByRef(args: BillLookupByRefArgs): Promise<Bill | BillServiceError>
+  notifyPaymentReceived(
+    args: BillNotifyPaymentReceivedArgs,
+  ): Promise<true | BillServiceError>
 }
