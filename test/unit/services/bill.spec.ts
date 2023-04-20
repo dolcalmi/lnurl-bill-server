@@ -3,9 +3,11 @@ import axios from "axios"
 import {
   BillIssuerTomlError,
   BillNotFoundError,
+  BillStatusUpdateError,
   InvalidBillError,
   UnknownBillServiceError,
 } from "@domain/bill/errors"
+import { BillPaymentStatus } from "@domain/bill"
 
 import { BillService } from "@services/bill"
 
@@ -34,84 +36,17 @@ const mockBillAxiosGet = (data: object, status = 200) => {
   })
 }
 
-describe("resolveSettings", () => {
-  const service = BillService()
-  const domain = "example.org" as Domain
+const mockBillAxiosPut = (data = {}, status = 200) => {
+  mockTomlAxiosGet()
+  jest.spyOn(axios, "put").mockImplementation(() =>
+    Promise.resolve({
+      status,
+      data,
+    }),
+  )
+}
 
-  beforeEach(() => {
-    jest.restoreAllMocks()
-  })
-
-  test("should return a BillIssuer object on successful TOML file fetch", async () => {
-    mockTomlAxiosGet()
-    const result = await service.resolveSettings({
-      domain,
-      allowHttp: false,
-      timeoutMs: 30000,
-    })
-
-    expect(result).toEqual({
-      domain,
-      name: "Example Organization",
-      billServerUrl: "https://blink.example.org/api",
-      pubkey: "EXAMPLEPUBLICKEY",
-      logoUrl: "https://example.org/logo.png",
-    })
-  })
-
-  test("should throw a BillIssuerTomlError if required settings are missing", async () => {
-    mockTomlAxiosGet(
-      "AUTH_PUBLIC_KEY = 'EXAMPLEPUBLICKEY'\nORG_LOGO_URL = 'https://example.org/logo.png'",
-    )
-    const result = await service.resolveSettings({
-      domain,
-      allowHttp: false,
-      timeoutMs: 30000,
-    })
-    expect(result).toBeInstanceOf(BillIssuerTomlError)
-  })
-
-  test("should throw an UnknownBillServiceError for unknown errors", async () => {
-    jest.spyOn(axios, "get").mockRejectedValue(new Error("An unknown error occurred"))
-
-    const result = await service.resolveSettings({
-      domain,
-      allowHttp: false,
-      timeoutMs: 30000,
-    })
-    expect(result).toBeInstanceOf(UnknownBillServiceError)
-  })
-
-  test("should use HTTPS by default", async () => {
-    mockTomlAxiosGet()
-    await service.resolveSettings({ domain })
-
-    expect(axios.get).toHaveBeenCalledWith(
-      "https://blink.example.org/.well-known/blink.toml",
-      expect.objectContaining({
-        signal: expect.any(AbortSignal),
-        timeout: 30000,
-        maxContentLength: 100 * 1024,
-      }),
-    )
-  })
-
-  test("should use HTTP when allowHttp is set to true", async () => {
-    mockTomlAxiosGet()
-    await service.resolveSettings({ domain, allowHttp: true })
-
-    expect(axios.get).toHaveBeenCalledWith(
-      "http://blink.example.org/.well-known/blink.toml",
-      expect.objectContaining({
-        signal: expect.any(AbortSignal),
-        timeout: 30000,
-        maxContentLength: 100 * 1024,
-      }),
-    )
-  })
-})
-
-describe("lookupByRef", () => {
+describe("BillService", () => {
   const service = BillService()
   const domain = "example.org" as Domain
   const reference = "valid-ref" as BillRef
@@ -120,84 +55,257 @@ describe("lookupByRef", () => {
     jest.restoreAllMocks()
   })
 
-  test("should return a bill for a valid reference", async () => {
-    mockBillAxiosGet({
-      reference: "valid-ref",
-      amount: 1000,
-      currency: "USD",
-      description: "Test Bill",
-    })
-    const result = await service.lookupByRef({ domain, reference })
-    if (result instanceof Error) throw result
+  describe("resolveSettings", () => {
+    test("should return a BillIssuer object on successful TOML file fetch", async () => {
+      mockTomlAxiosGet()
+      const result = await service.resolveSettings({
+        domain,
+        allowHttp: false,
+        timeoutMs: 30000,
+      })
 
-    expect(result).toEqual({
-      reference: "valid-ref",
-      amount: {
+      expect(result).toEqual({
+        domain,
+        name: "Example Organization",
+        billServerUrl: "https://blink.example.org/api",
+        pubkey: "EXAMPLEPUBLICKEY",
+        logoUrl: "https://example.org/logo.png",
+      })
+    })
+
+    test("should throw a BillIssuerTomlError if required settings are missing", async () => {
+      mockTomlAxiosGet(
+        "AUTH_PUBLIC_KEY = 'EXAMPLEPUBLICKEY'\nORG_LOGO_URL = 'https://example.org/logo.png'",
+      )
+      const result = await service.resolveSettings({
+        domain,
+        allowHttp: false,
+        timeoutMs: 30000,
+      })
+      expect(result).toBeInstanceOf(BillIssuerTomlError)
+    })
+
+    test("should throw an UnknownBillServiceError for unknown errors", async () => {
+      jest.spyOn(axios, "get").mockRejectedValue(new Error("An unknown error occurred"))
+
+      const result = await service.resolveSettings({
+        domain,
+        allowHttp: false,
+        timeoutMs: 30000,
+      })
+      expect(result).toBeInstanceOf(UnknownBillServiceError)
+    })
+
+    test("should use HTTPS by default", async () => {
+      mockTomlAxiosGet()
+      await service.resolveSettings({ domain })
+
+      expect(axios.get).toHaveBeenCalledWith(
+        "https://blink.example.org/.well-known/blink.toml",
+        expect.objectContaining({
+          signal: expect.any(AbortSignal),
+          timeout: 30000,
+          maxContentLength: 100 * 1024,
+        }),
+      )
+    })
+
+    test("should use HTTP when allowHttp is set to true", async () => {
+      mockTomlAxiosGet()
+      await service.resolveSettings({ domain, allowHttp: true })
+
+      expect(axios.get).toHaveBeenCalledWith(
+        "http://blink.example.org/.well-known/blink.toml",
+        expect.objectContaining({
+          signal: expect.any(AbortSignal),
+          timeout: 30000,
+          maxContentLength: 100 * 1024,
+        }),
+      )
+    })
+  })
+
+  describe("lookupByRef", () => {
+    test("should return a bill for a valid reference", async () => {
+      mockBillAxiosGet({
+        reference: "valid-ref",
         amount: 1000,
         currency: "USD",
-      },
-      description: "Test Bill",
+        description: "Test Bill",
+        status: "PENDING",
+      })
+      const result = await service.lookupByRef({ domain, reference })
+      if (result instanceof Error) throw result
+
+      expect(result).toEqual({
+        reference: "valid-ref",
+        amount: {
+          amount: 1000,
+          currency: "USD",
+        },
+        description: "Test Bill",
+        status: BillPaymentStatus.Pending,
+      })
+    })
+
+    test("should return BillNotFoundError for a non-existent reference", async () => {
+      mockBillAxiosGet({}, 404)
+      const result = await service.lookupByRef({ domain, reference })
+      expect(result).toBeInstanceOf(BillNotFoundError)
+      expect(result).toHaveProperty("message", "Bill not found")
+      expect(axios.get).toHaveBeenCalledTimes(2)
+      expect(axios.get).toHaveBeenNthCalledWith(
+        2,
+        "https://blink.example.org/api/bills/valid-ref",
+      )
+    })
+
+    test("should return UnknownBillServiceError for a server error", async () => {
+      mockBillAxiosGet({}, 500)
+      const result = await service.lookupByRef({ domain, reference })
+      expect(result).toBeInstanceOf(UnknownBillServiceError)
+      expect(result).toHaveProperty("message", "Invalid data")
+      expect(axios.get).toHaveBeenCalledTimes(2)
+      expect(axios.get).toHaveBeenNthCalledWith(
+        2,
+        "https://blink.example.org/api/bills/valid-ref",
+      )
+    })
+
+    test("should return InvalidBillError for invalid bill amount", async () => {
+      mockBillAxiosGet({
+        reference: "valid-ref",
+        amount: -100,
+        currency: "USD",
+        description: "Invalid Test Bill",
+        status: "PENDING",
+      })
+      const result = await service.lookupByRef({
+        domain,
+        reference: "valid-ref" as BillRef,
+      })
+      expect(result).toBeInstanceOf(InvalidBillError)
+      expect(result).toHaveProperty("message", "Invalid amount")
+      expect(axios.get).toHaveBeenCalledTimes(2)
+      expect(axios.get).toHaveBeenNthCalledWith(
+        2,
+        "https://blink.example.org/api/bills/valid-ref",
+      )
+    })
+
+    test("should return InvalidBillError for invalid bill status", async () => {
+      mockBillAxiosGet({
+        reference: "valid-ref",
+        amount: 100,
+        currency: "USD",
+        description: "Invalid Test Bill",
+        status: "INVALID_STATUS",
+      })
+      const result = await service.lookupByRef({
+        domain,
+        reference: "valid-ref" as BillRef,
+      })
+      expect(result).toBeInstanceOf(InvalidBillError)
+      expect(result).toHaveProperty("message", "Invalid status")
+      expect(axios.get).toHaveBeenCalledTimes(2)
+      expect(axios.get).toHaveBeenNthCalledWith(
+        2,
+        "https://blink.example.org/api/bills/valid-ref",
+      )
+    })
+
+    test("should return InvalidBillError for invalid bill reference", async () => {
+      mockBillAxiosGet({
+        reference: "invalid-ref",
+        amount: 100,
+        currency: "USD",
+        description: "Invalid Test Bill",
+        status: "PENDING",
+      })
+      const result = await service.lookupByRef({ domain, reference })
+      expect(result).toBeInstanceOf(InvalidBillError)
+      expect(result).toHaveProperty("message", "Invalid reference")
+      expect(axios.get).toHaveBeenCalledTimes(2)
+      expect(axios.get).toHaveBeenNthCalledWith(
+        2,
+        "https://blink.example.org/api/bills/valid-ref",
+      )
     })
   })
 
-  test("should return BillNotFoundError for a non-existent reference", async () => {
-    mockBillAxiosGet({}, 404)
-    const result = await service.lookupByRef({ domain, reference })
-    expect(result).toBeInstanceOf(BillNotFoundError)
-    expect(result).toHaveProperty("message", "Bill not found")
-    expect(axios.get).toHaveBeenCalledTimes(2)
-    expect(axios.get).toHaveBeenNthCalledWith(
-      2,
-      "https://blink.example.org/api/bills/valid-ref",
-    )
-  })
+  describe("notifyPaymentReceived", () => {
+    test("should return true when notification was sent successfully", async () => {
+      mockBillAxiosPut({
+        reference: "valid-ref",
+        amount: 1000,
+        currency: "USD",
+        description: "Test Bill",
+        status: "PAID",
+      })
+      const result = await service.notifyPaymentReceived({ domain, reference })
+      if (result instanceof Error) throw result
 
-  test("should return UnknownBillServiceError for a server error", async () => {
-    mockBillAxiosGet({}, 500)
-    const result = await service.lookupByRef({ domain, reference })
-    expect(result).toBeInstanceOf(UnknownBillServiceError)
-    expect(result).toHaveProperty("message", "Invalid data")
-    expect(axios.get).toHaveBeenCalledTimes(2)
-    expect(axios.get).toHaveBeenNthCalledWith(
-      2,
-      "https://blink.example.org/api/bills/valid-ref",
-    )
-  })
+      expect(result).toBe(true)
+    })
 
-  test("should return InvalidBillError for invalid bill amount", async () => {
-    mockBillAxiosGet({
-      reference: "invalid-ref",
-      amount: -100,
-      currency: "USD",
-      description: "Invalid Test Bill",
+    test("should return BillNotFoundError for a non-existent reference", async () => {
+      mockBillAxiosPut({}, 404)
+      const result = await service.notifyPaymentReceived({ domain, reference })
+      expect(result).toBeInstanceOf(BillNotFoundError)
+      expect(result).toHaveProperty("message", "Bill not found")
+      expect(axios.put).toHaveBeenCalledTimes(1)
+      expect(axios.put).toHaveBeenCalledWith("https://blink.example.org/api/bills/", {
+        reference: "valid-ref",
+        status: BillPaymentStatus.Paid,
+      })
     })
-    const result = await service.lookupByRef({
-      domain,
-      reference: "invalid-ref" as BillRef,
-    })
-    expect(result).toBeInstanceOf(InvalidBillError)
-    expect(result).toHaveProperty("message", "Invalid amount")
-    expect(axios.get).toHaveBeenCalledTimes(2)
-    expect(axios.get).toHaveBeenNthCalledWith(
-      2,
-      "https://blink.example.org/api/bills/invalid-ref",
-    )
-  })
 
-  test("should return InvalidBillError for invalid bill reference", async () => {
-    mockBillAxiosGet({
-      reference: "invalid-ref",
-      amount: 100,
-      currency: "USD",
-      description: "Invalid Test Bill",
+    test("should return UnknownBillServiceError for a server error", async () => {
+      mockBillAxiosPut({}, 500)
+      const result = await service.notifyPaymentReceived({ domain, reference })
+      expect(result).toBeInstanceOf(UnknownBillServiceError)
+      expect(result).toHaveProperty("message", "Invalid data")
+      expect(axios.put).toHaveBeenCalledTimes(1)
+      expect(axios.put).toHaveBeenCalledWith("https://blink.example.org/api/bills/", {
+        reference: "valid-ref",
+        status: BillPaymentStatus.Paid,
+      })
     })
-    const result = await service.lookupByRef({ domain, reference })
-    expect(result).toBeInstanceOf(InvalidBillError)
-    expect(result).toHaveProperty("message", "Invalid reference")
-    expect(axios.get).toHaveBeenCalledTimes(2)
-    expect(axios.get).toHaveBeenNthCalledWith(
-      2,
-      "https://blink.example.org/api/bills/valid-ref",
-    )
+
+    test("should return InvalidBillError for invalid bill reference", async () => {
+      mockBillAxiosPut({
+        reference: "invalid-ref",
+        amount: 1000,
+        currency: "USD",
+        description: "Test Bill",
+        status: "PAID",
+      })
+      const result = await service.notifyPaymentReceived({ domain, reference })
+      expect(result).toBeInstanceOf(InvalidBillError)
+      expect(result).toHaveProperty("message", "Invalid reference")
+      expect(axios.put).toHaveBeenCalledTimes(1)
+      expect(axios.put).toHaveBeenCalledWith("https://blink.example.org/api/bills/", {
+        reference: "valid-ref",
+        status: BillPaymentStatus.Paid,
+      })
+    })
+
+    test("should return BillStatusUpdateError for not updated bill status", async () => {
+      mockBillAxiosPut({
+        reference: "valid-ref",
+        amount: 1000,
+        currency: "USD",
+        description: "Test Bill",
+        status: "PENDING",
+      })
+      const result = await service.notifyPaymentReceived({ domain, reference })
+      expect(result).toBeInstanceOf(BillStatusUpdateError)
+      expect(result).toHaveProperty("message", "Status was not updated")
+      expect(axios.put).toHaveBeenCalledTimes(1)
+      expect(axios.put).toHaveBeenCalledWith("https://blink.example.org/api/bills/", {
+        reference: "valid-ref",
+        status: BillPaymentStatus.Paid,
+      })
+    })
   })
 })
