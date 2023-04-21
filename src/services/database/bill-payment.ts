@@ -56,17 +56,10 @@ export const BillPaymentRepository = (): IBillPaymentRepository => {
     billPayment: BillPayment,
   ): Promise<BillPayment | BillPaymentRepositoryError> => {
     try {
-      const {
-        domain,
-        reference,
-        period,
-        invoiceStatus,
-        paidResponse,
-        notificationSentDate,
-      } = serializeBillPayment(billPayment)
+      const { domain, reference, period } = billPayment
       const result = await queryBuilder("bill_payments")
         .where({ domain, reference, period })
-        .update({ invoiceStatus, paidResponse, notificationSentDate })
+        .update(serializeBillPayment(billPayment))
 
       if (result === 0) return new BillPaymentNotUpdatedRepositoryError()
 
