@@ -18,3 +18,8 @@ export class DomainError extends Error {
 
 export class ValidationError extends DomainError {}
 export class InvalidLnInvoiceStatusError extends ValidationError {}
+
+export class RepositoryError extends DomainError {}
+export class DbConnectionError extends RepositoryError {
+  level = ErrorLevel.Critical
+}

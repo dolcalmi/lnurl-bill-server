@@ -2,6 +2,19 @@ declare const brand: unique symbol
 
 type Brand<T, TBrand extends string> = T & { [brand]: TBrand }
 
+type JSONValue =
+  | string
+  | number
+  | bigint
+  | boolean
+  | Date
+  | JSONObject
+  | JSONArray
+  | null
+  | undefined
+type JSONArray = Array<JSONValue>
+type JSONObject = { [key: string]: JSONValue }
+
 type Domain = Brand<string, "Domain">
 type LnInvoice = Brand<string, "LnInvoice">
 
