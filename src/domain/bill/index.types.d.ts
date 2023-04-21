@@ -4,6 +4,7 @@ type BillPaymentStatus =
 
 type BillIssuerPubKey = Brand<string, "BillIssuerPubKey">
 type BillRef = Brand<string, "BillRef">
+type BillPeriod = Brand<string, "BillPeriod">
 type BillDescription = Brand<string, "BillDescription">
 
 type BillIssuer = {
@@ -16,6 +17,7 @@ type BillIssuer = {
 
 type Bill = {
   reference: BillRef
+  period: BillPeriod
   description: BillDescription
   amount: BtcSatsWalletAmount | UsdCentsWalletAmount
   status: BillPaymentStatus

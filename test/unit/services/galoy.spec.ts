@@ -6,8 +6,7 @@ import {
   InvoiceRequestError,
   UnknownGaloyServiceError,
 } from "@domain/galoy/errors"
-import { WalletCurrency } from "@domain/shared"
-import { GaloyInvoiceStatus } from "@domain/galoy"
+import { LnInvoiceStatus, WalletCurrency } from "@domain/shared"
 
 import { GaloyService } from "@services/galoy"
 
@@ -169,7 +168,7 @@ describe("checkInvoiceStatus", () => {
     const result = await service.checkInvoiceStatus({ invoice })
     if (result instanceof Error) throw Error("Invalid data")
 
-    expect(result).toBe(GaloyInvoiceStatus.Paid)
+    expect(result).toBe(LnInvoiceStatus.Paid)
     expect(mockedRequest).toHaveBeenCalledTimes(1)
   })
 
@@ -183,7 +182,7 @@ describe("checkInvoiceStatus", () => {
     const result = await service.checkInvoiceStatus({ invoice })
     if (result instanceof Error) throw Error("Invalid data")
 
-    expect(result).toBe(GaloyInvoiceStatus.Pending)
+    expect(result).toBe(LnInvoiceStatus.Pending)
     expect(mockedRequest).toHaveBeenCalledTimes(1)
   })
 
@@ -197,7 +196,7 @@ describe("checkInvoiceStatus", () => {
     const result = await service.checkInvoiceStatus({ invoice })
     if (result instanceof Error) throw Error("Invalid data")
 
-    expect(result).toBe(GaloyInvoiceStatus.Expired)
+    expect(result).toBe(LnInvoiceStatus.Expired)
     expect(mockedRequest).toHaveBeenCalledTimes(1)
   })
 

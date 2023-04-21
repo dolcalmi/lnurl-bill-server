@@ -129,6 +129,7 @@ describe("BillService", () => {
     test("should return a bill for a valid reference", async () => {
       mockBillAxiosGet({
         reference: "valid-ref",
+        period: "Apr2023",
         amount: 1000,
         currency: "USD",
         description: "Test Bill",
@@ -139,6 +140,7 @@ describe("BillService", () => {
 
       expect(result).toEqual({
         reference: "valid-ref",
+        period: "Apr2023",
         amount: {
           amount: 1000,
           currency: "USD",
@@ -175,6 +177,7 @@ describe("BillService", () => {
     test("should return InvalidBillError for invalid bill amount", async () => {
       mockBillAxiosGet({
         reference: "valid-ref",
+        period: "Apr2023",
         amount: -100,
         currency: "USD",
         description: "Invalid Test Bill",
@@ -196,6 +199,7 @@ describe("BillService", () => {
     test("should return InvalidBillError for invalid bill status", async () => {
       mockBillAxiosGet({
         reference: "valid-ref",
+        period: "Apr2023",
         amount: 100,
         currency: "USD",
         description: "Invalid Test Bill",
@@ -214,9 +218,32 @@ describe("BillService", () => {
       )
     })
 
+    test("should return InvalidBillError for invalid bill period", async () => {
+      mockBillAxiosGet({
+        reference: "valid-ref",
+        period: "",
+        amount: 100,
+        currency: "USD",
+        description: "Invalid Test Bill",
+        status: "PENDING",
+      })
+      const result = await service.lookupByRef({
+        domain,
+        reference: "valid-ref" as BillRef,
+      })
+      expect(result).toBeInstanceOf(InvalidBillError)
+      expect(result).toHaveProperty("message", "Invalid period")
+      expect(axios.get).toHaveBeenCalledTimes(2)
+      expect(axios.get).toHaveBeenNthCalledWith(
+        2,
+        "https://blink.example.org/api/bills/valid-ref",
+      )
+    })
+
     test("should return InvalidBillError for invalid bill reference", async () => {
       mockBillAxiosGet({
         reference: "invalid-ref",
+        period: "Apr2023",
         amount: 100,
         currency: "USD",
         description: "Invalid Test Bill",
@@ -237,6 +264,7 @@ describe("BillService", () => {
     test("should return true when notification was sent successfully", async () => {
       mockBillAxiosPut({
         reference: "valid-ref",
+        period: "Apr2023",
         amount: 1000,
         currency: "USD",
         description: "Test Bill",
@@ -275,6 +303,7 @@ describe("BillService", () => {
     test("should return InvalidBillError for invalid bill reference", async () => {
       mockBillAxiosPut({
         reference: "invalid-ref",
+        period: "Apr2023",
         amount: 1000,
         currency: "USD",
         description: "Test Bill",
@@ -293,6 +322,7 @@ describe("BillService", () => {
     test("should return BillStatusUpdateError for not updated bill status", async () => {
       mockBillAxiosPut({
         reference: "valid-ref",
+        period: "Apr2023",
         amount: 1000,
         currency: "USD",
         description: "Test Bill",
