@@ -7,6 +7,9 @@ type LnInvoice = Brand<string, "LnInvoice">
 
 type WalletCurrency =
   typeof import("./index").WalletCurrency[keyof typeof import("./index").WalletCurrency]
+type LnInvoiceStatus =
+  typeof import("./index").LnInvoiceStatus[keyof typeof import("./index").LnInvoiceStatus]
+
 type WalletAmount<T extends WalletCurrency> = {
   currency: T
   amount: bigint

@@ -4,12 +4,12 @@ import { galoyConfig } from "@config"
 
 import {
   InvalidInvoiceError,
+  InvalidStatusError,
   InvalidUsernameError,
   InvoiceRequestError,
   UnknownGaloyServiceError,
 } from "@domain/galoy/errors"
-import { WalletCurrency } from "@domain/shared"
-import { toGaloyInvoiceStatus } from "@domain/galoy"
+import { WalletCurrency, toLnInvoiceStatus } from "@domain/shared"
 
 import { baseLogger } from "@services/logger"
 import { wrapAsyncFunctionsToRunInSpan } from "@services/tracing"
@@ -83,7 +83,7 @@ export const GaloyService = (): IGaloyService => {
 
   const checkInvoiceStatus = async ({
     invoice,
-  }: GaloyCheckInvoiceStatusArgs): Promise<GaloyInvoiceStatus | GaloyServiceError> => {
+  }: GaloyCheckInvoiceStatusArgs): Promise<LnInvoiceStatus | GaloyServiceError> => {
     try {
       const variables = {
         input: {
@@ -102,7 +102,10 @@ export const GaloyService = (): IGaloyService => {
         return new UnknownGaloyServiceError("Error getting invoice status")
       }
 
-      return toGaloyInvoiceStatus(status)
+      const checkedStatus = toLnInvoiceStatus(status)
+      if (checkedStatus instanceof Error) return new InvalidStatusError()
+
+      return checkedStatus
     } catch (error) {
       baseLogger.info({ error, invoice }, "Unknown galoy service error")
       return parseGaloyServiceError(error)

@@ -1,5 +1,8 @@
 BIN_DIR=node_modules/.bin
 
+watch-compile:
+	$(BIN_DIR)/tsc --watch  --noEmit --skipLibCheck
+
 check-code:
 	yarn tsc-check
 	yarn eslint-check

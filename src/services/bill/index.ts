@@ -135,8 +135,11 @@ const translateToBill = (data: GetBillResponse): Bill | InvalidBillError => {
   const hasValidStatus = statuses.includes(data.status)
   if (!hasValidStatus) return new InvalidBillError("Invalid status")
 
+  if (!data.period) return new InvalidBillError("Invalid period")
+
   return {
     reference: data.reference as BillRef,
+    period: data.period as BillPeriod,
     amount: {
       amount: data.amount,
       currency: data.currency,
