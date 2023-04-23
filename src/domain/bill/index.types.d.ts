@@ -10,6 +10,7 @@ type BillDescription = Brand<string, "BillDescription">
 type BillIssuer = {
   domain: Domain
   name: string
+  username: LnAddress
   billServerUrl: string
   pubkey?: BillIssuerPubKey
   logoUrl?: string
@@ -44,5 +45,5 @@ interface IBillService {
   lookupByRef(args: BillLookupByRefArgs): Promise<Bill | BillServiceError>
   notifyPaymentReceived(
     args: BillNotifyPaymentReceivedArgs,
-  ): Promise<true | BillServiceError>
+  ): Promise<Bill | BillServiceError>
 }

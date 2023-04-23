@@ -16,6 +16,7 @@ jest.mock("axios")
 const MOCK_TOML_DATA = `
   AUTH_PUBLIC_KEY = "EXAMPLEPUBLICKEY"
   ORG_NAME = "Example Organization"
+  ORG_LN_ADDRESS = "example@blink.sv"
   ORG_LOGO_URL = "https://example.org/logo.png"
 `
 
@@ -67,6 +68,7 @@ describe("BillService", () => {
       expect(result).toEqual({
         domain,
         name: "Example Organization",
+        username: "example@blink.sv",
         billServerUrl: "https://blink.example.org/api",
         pubkey: "EXAMPLEPUBLICKEY",
         logoUrl: "https://example.org/logo.png",
@@ -261,7 +263,7 @@ describe("BillService", () => {
   })
 
   describe("notifyPaymentReceived", () => {
-    test("should return true when notification was sent successfully", async () => {
+    test("should return updated bill when notification was sent successfully", async () => {
       mockBillAxiosPut({
         reference: "valid-ref",
         period: "Apr2023",
@@ -273,7 +275,16 @@ describe("BillService", () => {
       const result = await service.notifyPaymentReceived({ domain, reference })
       if (result instanceof Error) throw result
 
-      expect(result).toBe(true)
+      expect(result).toEqual({
+        reference: "valid-ref",
+        period: "Apr2023",
+        amount: {
+          amount: 1000,
+          currency: "USD",
+        },
+        description: "Test Bill",
+        status: BillPaymentStatus.Paid,
+      })
     })
 
     test("should return BillNotFoundError for a non-existent reference", async () => {

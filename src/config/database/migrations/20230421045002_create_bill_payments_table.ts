@@ -6,7 +6,7 @@ export async function up(knex: Knex): Promise<void> {
     table.string("reference").notNullable()
     table.string("period").notNullable()
     table.string("invoice").notNullable()
-    table.string("invoiceStatus").notNullable()
+    table.enum("invoiceStatus", ["EXPIRED", "PENDING", "PAID"]).notNullable()
     table.json("pendingResponse").notNullable()
     table.json("paidResponse")
     table.timestamp("notificationSentDate")

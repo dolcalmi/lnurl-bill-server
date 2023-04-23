@@ -8,9 +8,11 @@ import {
 import { wrapAsyncFunctionsToRunInSpan } from "@services/tracing"
 
 import { baseLogger } from "@services/logger"
-import { DbConnectionError } from "@domain/shared"
+import { DbConnectionError, LnInvoiceStatus } from "@domain/shared"
 
 import { queryBuilder } from "./query-builder"
+
+const tableName = "bill_payments"
 
 export const BillPaymentRepository = (): IBillPaymentRepository => {
   const find = async ({
@@ -19,7 +21,7 @@ export const BillPaymentRepository = (): IBillPaymentRepository => {
     period,
   }: BillPaymentFindArgs): Promise<BillPayment | BillPaymentRepositoryError> => {
     try {
-      const billPayment = await queryBuilder("bill_payments")
+      const billPayment = await queryBuilder(tableName)
         .select()
         .where({ domain, reference, period })
         .first<DbBillPaymentRecord | undefined>()
@@ -35,12 +37,47 @@ export const BillPaymentRepository = (): IBillPaymentRepository => {
     }
   }
 
+  const yieldPending = async function* ({
+    limit = 100,
+    offset = 0,
+  }: BillPaymentYieldPendingArgs): AsyncGenerator<
+    BillPayment | BillPaymentRepositoryError
+  > {
+    let hasNextPage = true
+    let currentOffset = offset
+
+    while (hasNextPage) {
+      try {
+        const billPayments = await queryBuilder<DbBillPaymentRecord>(tableName)
+          .select()
+          .where({ invoiceStatus: LnInvoiceStatus.Pending })
+          .orderBy("created_at")
+          .limit(limit)
+          .offset(currentOffset)
+
+        if (billPayments.length < limit) {
+          hasNextPage = false
+        }
+
+        for (const billPayment of billPayments) {
+          yield dbRecordToBillPayment(billPayment)
+        }
+
+        currentOffset += limit
+      } catch (error) {
+        hasNextPage = false
+        baseLogger.info({ error, limit, offset }, "Unknown bill payment repository error")
+        yield parseBillPaymentRepositoryError(error)
+      }
+    }
+  }
+
   const persistNew = async (
     billPayment: BillPayment,
   ): Promise<BillPayment | BillPaymentRepositoryError> => {
     try {
       const serializedBillPayment = serializeBillPayment(billPayment)
-      const result = await queryBuilder("bill_payments").insert(serializedBillPayment)
+      const result = await queryBuilder(tableName).insert(serializedBillPayment)
 
       const persisted = result && result[0] === 1
       if (!persisted) return new BillPaymentNotPersistedRepositoryError()
@@ -57,8 +94,9 @@ export const BillPaymentRepository = (): IBillPaymentRepository => {
   ): Promise<BillPayment | BillPaymentRepositoryError> => {
     try {
       const { domain, reference, period } = billPayment
-      const result = await queryBuilder("bill_payments")
+      const result = await queryBuilder(tableName)
         .where({ domain, reference, period })
+        .andWhereNot("invoiceStatus", LnInvoiceStatus.Paid)
         .update(serializeBillPayment(billPayment))
 
       if (result === 0) return new BillPaymentNotUpdatedRepositoryError()
@@ -74,6 +112,7 @@ export const BillPaymentRepository = (): IBillPaymentRepository => {
     namespace: "services.database.billPayment",
     fns: {
       find,
+      yieldPending,
       persistNew,
       update,
     },
