@@ -37,16 +37,17 @@ export const BillService = (): IBillService => {
         },
       )
       if (status >= 400 || !data) return new BillIssuerTomlError()
-      const { AUTH_PUBLIC_KEY, ORG_NAME, BILL_SERVER_URL, ORG_LOGO_URL } =
+      const { AUTH_PUBLIC_KEY, ORG_NAME, ORG_LN_ADDRESS, BILL_SERVER_URL, ORG_LOGO_URL } =
         toml.parse(data)
 
-      if (!ORG_NAME) {
+      if (!ORG_NAME || !ORG_LN_ADDRESS) {
         return new BillIssuerTomlError("Missing required settings")
       }
 
       return {
         domain,
         name: ORG_NAME,
+        username: ORG_LN_ADDRESS as LnAddress,
         billServerUrl: BILL_SERVER_URL || `${baseUrl}/api`,
         pubkey: AUTH_PUBLIC_KEY,
         logoUrl: ORG_LOGO_URL,
@@ -88,7 +89,7 @@ export const BillService = (): IBillService => {
   const notifyPaymentReceived = async ({
     domain,
     reference,
-  }: BillNotifyPaymentReceivedArgs): Promise<true | BillServiceError> => {
+  }: BillNotifyPaymentReceivedArgs): Promise<Bill | BillServiceError> => {
     try {
       const settings = await resolveSettings({ domain })
       if (settings instanceof Error) return settings
@@ -109,7 +110,7 @@ export const BillService = (): IBillService => {
       if (bill.status !== BillPaymentStatus.Paid)
         return new BillStatusUpdateError("Status was not updated")
 
-      return true
+      return bill
     } catch (error) {
       baseLogger.info({ error, domain, reference }, "Unknown bill service error")
       return parseBillServiceError(error)

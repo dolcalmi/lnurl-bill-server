@@ -17,8 +17,16 @@ type BillPaymentFindArgs = {
   period: BillPeriod
 }
 
+type BillPaymentYieldPendingArgs = {
+  limit?: number
+  offset?: number
+}
+
 interface IBillPaymentRepository {
   find(args: BillPaymentFindArgs): Promise<BillPayment | BillPaymentRepositoryError>
+  yieldPending: (
+    args: BillPaymentYieldPendingArgs,
+  ) => AsyncGenerator<BillPayment | BillPaymentRepositoryError>
   persistNew(args: BillPayment): Promise<BillPayment | BillPaymentRepositoryError>
   update(args: BillPayment): Promise<BillPayment | BillPaymentRepositoryError>
 }

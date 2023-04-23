@@ -1,11 +1,10 @@
 type GaloyServiceError = import("./errors").GaloyServiceError
 
-type GaloyUsername = Brand<string, "GaloyUsername">
 type GaloyMemo = Brand<string, "GaloyMemo">
 type GaloyDescriptionHash = Brand<string, "GaloyDescriptionHash">
 
 type GaloyCreateInvoiceArgs = {
-  username: GaloyUsername
+  username: LnAddress
   amount: BtcSatsWalletAmount | UsdCentsWalletAmount
   memo?: GaloyMemo
   descriptionHash?: GaloyDescriptionHash

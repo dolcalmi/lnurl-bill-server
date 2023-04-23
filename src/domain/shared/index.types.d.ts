@@ -16,6 +16,7 @@ type JSONArray = Array<JSONValue>
 type JSONObject = { [key: string]: JSONValue }
 
 type Domain = Brand<string, "Domain">
+type LnAddress = Brand<string, "LnAddress">
 type LnInvoice = Brand<string, "LnInvoice">
 
 type WalletCurrency =
