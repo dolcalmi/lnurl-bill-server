@@ -1,11 +1,12 @@
 import { LnInvoiceStatus } from "@domain/shared"
 import { isBillPayment } from "@domain/bill-payment"
-import { BillAlreadyPaidError } from "@domain/bill/errors"
+import { BillAlreadyPaidError, BillOverdueError } from "@domain/bill/errors"
 import { BillPaymentNotFoundRepositoryError } from "@domain/bill-payment/errors"
 
 import { BillService } from "@services/bill"
 import { GaloyService } from "@services/galoy"
 import { BillPaymentRepository } from "@services/database"
+import { BillPaymentStatus, areBillDetailsEqual } from "@domain/bill"
 
 export const createPayment = async ({
   domain,
@@ -19,6 +20,7 @@ export const createPayment = async ({
 
   const bill = await billService.lookupByRef({ domain, reference })
   if (bill instanceof Error) return bill
+  if (bill.status === BillPaymentStatus.Overdue) return new BillOverdueError()
 
   const billPayment = await billPaymentRepo.find({
     domain,
@@ -39,7 +41,11 @@ export const createPayment = async ({
       if (currentStatus instanceof Error) return currentStatus
 
       if (currentStatus === LnInvoiceStatus.Paid) return new BillAlreadyPaidError()
-      if (currentStatus === LnInvoiceStatus.Pending) return billPayment
+      if (
+        currentStatus === LnInvoiceStatus.Pending &&
+        areBillDetailsEqual(bill, billPayment.pendingResponse)
+      )
+        return billPayment
     }
   }
 

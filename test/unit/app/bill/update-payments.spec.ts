@@ -1,5 +1,6 @@
 import { updatePayment } from "@app/bill/update-payments"
 
+import { BillPaymentStatus } from "@domain/bill"
 import { LnInvoiceStatus, WalletCurrency } from "@domain/shared"
 import {
   BillAlreadyPaidError,
@@ -20,7 +21,7 @@ describe("updatePayment", () => {
       currency: WalletCurrency.BtcSats,
     } as BtcSatsWalletAmount,
     description: "description-1",
-    status: LnInvoiceStatus.Pending,
+    status: BillPaymentStatus.Pending,
   } as Bill
 
   const billPayment = {
