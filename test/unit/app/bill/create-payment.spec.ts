@@ -1,6 +1,8 @@
+import { BillPaymentStatus } from "@domain/bill"
 import { createPayment } from "@app/bill/create-payment"
-import { BillAlreadyPaidError } from "@domain/bill/errors"
 import { LnInvoiceStatus, WalletCurrency } from "@domain/shared"
+import { BillAlreadyPaidError, BillOverdueError } from "@domain/bill/errors"
+
 import * as BillServiceImpl from "@services/bill"
 import * as GaloyServiceImpl from "@services/galoy"
 import * as BillPaymentRepositoryImpl from "@services/database/bill-payment"
@@ -29,7 +31,7 @@ describe("createPayment", () => {
       currency: WalletCurrency.BtcSats,
     } as BtcSatsWalletAmount,
     description: "description-1",
-    status: LnInvoiceStatus.Pending,
+    status: BillPaymentStatus.Pending,
   } as Bill
 
   const billPayment = {
@@ -40,6 +42,17 @@ describe("createPayment", () => {
     invoiceStatus: LnInvoiceStatus.Pending,
     pendingResponse: bill,
   } as BillPayment
+
+  test("should return BillOverdueError when bill status is overdue", async () => {
+    jest.spyOn(BillServiceImpl, "BillService").mockImplementationOnce(() => ({
+      lookupByRef: () => Promise.resolve({ ...bill, status: BillPaymentStatus.Overdue }),
+      notifyPaymentReceived: jest.fn(),
+      resolveSettings: jest.fn(),
+    }))
+
+    const result = await createPayment({ domain, reference, descriptionHash, memo })
+    expect(result).toBeInstanceOf(BillOverdueError)
+  })
 
   test("should return BillAlreadyPaidError when invoice status is paid", async () => {
     jest.spyOn(BillServiceImpl, "BillService").mockImplementationOnce(() => ({
@@ -140,7 +153,7 @@ describe("createPayment", () => {
     })
   })
 
-  test("should update the existing BillPayment and return it when invoice has expired", async () => {
+  test("should update the existing BillPayment when invoice has expired", async () => {
     jest.spyOn(BillServiceImpl, "BillService").mockImplementationOnce(() => ({
       lookupByRef: () => Promise.resolve(bill),
       resolveSettings: () => Promise.resolve(billIssuer),
@@ -165,6 +178,41 @@ describe("createPayment", () => {
       invoice: "invoice-2" as LnInvoice,
       invoiceStatus: LnInvoiceStatus.Pending,
       pendingResponse: bill,
+    })
+  })
+
+  test("should update the existing BillPayment when invoice is pending but has different amount", async () => {
+    const updatedBill = {
+      ...bill,
+      amount: {
+        amount: 2000n,
+        currency: WalletCurrency.BtcSats,
+      } as BtcSatsWalletAmount,
+    }
+    jest.spyOn(BillServiceImpl, "BillService").mockImplementationOnce(() => ({
+      lookupByRef: () => Promise.resolve(updatedBill),
+      resolveSettings: () => Promise.resolve(billIssuer),
+      notifyPaymentReceived: jest.fn(),
+    }))
+    jest
+      .spyOn(BillPaymentRepositoryImpl, "BillPaymentRepository")
+      .mockImplementationOnce(() => ({
+        find: () => Promise.resolve(billPayment),
+        update: (updatedBillPayment: BillPayment) => Promise.resolve(updatedBillPayment),
+        persistNew: jest.fn(),
+        yieldPending: jest.fn(),
+      }))
+    jest.spyOn(GaloyServiceImpl, "GaloyService").mockImplementationOnce(() => ({
+      checkInvoiceStatus: () => Promise.resolve(LnInvoiceStatus.Pending),
+      createInvoice: () => Promise.resolve("invoice-2" as LnInvoice),
+    }))
+
+    const result = await createPayment({ domain, reference, descriptionHash, memo })
+    expect(result).toEqual({
+      ...billPayment,
+      invoice: "invoice-2" as LnInvoice,
+      invoiceStatus: LnInvoiceStatus.Pending,
+      pendingResponse: updatedBill,
     })
   })
 })
