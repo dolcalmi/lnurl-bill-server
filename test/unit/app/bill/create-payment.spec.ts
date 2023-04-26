@@ -11,8 +11,6 @@ import { BillPaymentNotFoundRepositoryError } from "@domain/bill-payment/errors"
 describe("createPayment", () => {
   const domain = "domain-1" as Domain
   const reference = "reference-1" as BillRef
-  const descriptionHash = "description-hash" as GaloyDescriptionHash
-  const memo = "memo-1" as GaloyMemo
 
   const billIssuer = {
     domain,
@@ -50,7 +48,7 @@ describe("createPayment", () => {
       resolveSettings: jest.fn(),
     }))
 
-    const result = await createPayment({ domain, reference, descriptionHash, memo })
+    const result = await createPayment({ domain, reference })
     expect(result).toBeInstanceOf(BillOverdueError)
   })
 
@@ -70,7 +68,7 @@ describe("createPayment", () => {
         yieldPending: jest.fn(),
       }))
 
-    const result = await createPayment({ domain, reference, descriptionHash, memo })
+    const result = await createPayment({ domain, reference })
     expect(result).toBeInstanceOf(BillAlreadyPaidError)
   })
 
@@ -93,7 +91,7 @@ describe("createPayment", () => {
       createInvoice: jest.fn(),
     }))
 
-    const result = await createPayment({ domain, reference, descriptionHash, memo })
+    const result = await createPayment({ domain, reference })
     expect(result).toBeInstanceOf(BillAlreadyPaidError)
   })
 
@@ -116,7 +114,7 @@ describe("createPayment", () => {
       createInvoice: jest.fn(),
     }))
 
-    const result = await createPayment({ domain, reference, descriptionHash, memo })
+    const result = await createPayment({ domain, reference })
     expect(result).toEqual(billPayment)
   })
 
@@ -142,7 +140,7 @@ describe("createPayment", () => {
       checkInvoiceStatus: jest.fn(),
     }))
 
-    const result = await createPayment({ domain, reference, descriptionHash, memo })
+    const result = await createPayment({ domain, reference })
     expect(result).toEqual({
       domain,
       reference,
@@ -172,7 +170,7 @@ describe("createPayment", () => {
       createInvoice: () => Promise.resolve("invoice-2" as LnInvoice),
     }))
 
-    const result = await createPayment({ domain, reference, descriptionHash, memo })
+    const result = await createPayment({ domain, reference })
     expect(result).toEqual({
       ...billPayment,
       invoice: "invoice-2" as LnInvoice,
@@ -207,7 +205,7 @@ describe("createPayment", () => {
       createInvoice: () => Promise.resolve("invoice-2" as LnInvoice),
     }))
 
-    const result = await createPayment({ domain, reference, descriptionHash, memo })
+    const result = await createPayment({ domain, reference })
     expect(result).toEqual({
       ...billPayment,
       invoice: "invoice-2" as LnInvoice,

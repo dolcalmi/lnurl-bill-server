@@ -3,6 +3,7 @@ import axios from "axios"
 
 import {
   BillIssuerTomlError,
+  BillIssuerTomlNotFoundError,
   BillNotFoundError,
   BillStatusUpdateError,
   InvalidBillError,
@@ -24,10 +25,9 @@ export const BillService = (): IBillService => {
     allowHttp = false,
     timeoutMs = 30000,
   }: BillResolveSettingsArgs): Promise<BillIssuer | BillServiceError> => {
+    const protocol = allowHttp ? "http" : "https"
+    const baseUrl = `${protocol}://${TOML_SUBDOMAIN}.${domain}`
     try {
-      const protocol = allowHttp ? "http" : "https"
-      const baseUrl = `${protocol}://${TOML_SUBDOMAIN}.${domain}`
-
       const { status, data } = await axios.get(
         `${baseUrl}/.well-known/${TOML_FILE_NAME}`,
         {
@@ -36,6 +36,7 @@ export const BillService = (): IBillService => {
           maxContentLength: TOML_MAX_SIZE,
         },
       )
+      if (status === 404) return new BillIssuerTomlNotFoundError()
       if (status >= 400 || !data) return new BillIssuerTomlError()
       const { AUTH_PUBLIC_KEY, ORG_NAME, ORG_LN_ADDRESS, BILL_SERVER_URL, ORG_LOGO_URL } =
         toml.parse(data)
@@ -54,7 +55,7 @@ export const BillService = (): IBillService => {
       } as BillIssuer
     } catch (error) {
       baseLogger.info(
-        { error, domain, allowHttp, timeoutMs },
+        { error, domain, allowHttp, timeoutMs, baseUrl },
         "Unknown bill service error",
       )
       return parseBillServiceError(error)
@@ -95,9 +96,8 @@ export const BillService = (): IBillService => {
       if (settings instanceof Error) return settings
 
       const { status, data } = await axios.put<GetBillResponse>(
-        `${settings.billServerUrl}/bills/`,
+        `${settings.billServerUrl}/bills/${reference}`,
         {
-          reference,
           status: BillPaymentStatus.Paid,
         },
       )

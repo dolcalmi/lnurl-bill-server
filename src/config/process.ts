@@ -1,3 +1,5 @@
+export const isProd = process.env.NODE_ENV === "production"
+
 export const tracingConfig = {
   serviceName: process.env.TRACING_SERVICE_NAME || "bill-server-dev",
   url: process.env.TRACING_URL || "localhost",

@@ -12,9 +12,14 @@ export class InvalidBillError extends BillServiceError {
   level = ErrorLevel.Critical
 }
 
+export class BillIssuerTomlNotFoundError extends BillServiceError {
+  level = ErrorLevel.Critical
+}
+
 export class BillIssuerTomlError extends BillServiceError {
   level = ErrorLevel.Critical
 }
+
 export class UnknownBillServiceError extends BillServiceError {
   level = ErrorLevel.Critical
 }

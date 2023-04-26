@@ -2,6 +2,7 @@ import axios from "axios"
 
 import {
   BillIssuerTomlError,
+  BillIssuerTomlNotFoundError,
   BillNotFoundError,
   BillStatusUpdateError,
   InvalidBillError,
@@ -20,12 +21,8 @@ const MOCK_TOML_DATA = `
   ORG_LOGO_URL = "https://example.org/logo.png"
 `
 
-const mockTomlAxiosGet = (data = MOCK_TOML_DATA) => {
-  jest.spyOn(axios, "get").mockImplementation(() =>
-    Promise.resolve({
-      data,
-    }),
-  )
+const mockTomlAxiosGet = (data = MOCK_TOML_DATA, status = 200) => {
+  jest.spyOn(axios, "get").mockImplementation(() => Promise.resolve({ data, status }))
 }
 
 const mockBillAxiosGet = (data: object, status = 200) => {
@@ -75,7 +72,17 @@ describe("BillService", () => {
       })
     })
 
-    test("should throw a BillIssuerTomlError if required settings are missing", async () => {
+    test("should return a BillIssuerTomlNotFoundError if toml is missing", async () => {
+      mockTomlAxiosGet("", 404)
+      const result = await service.resolveSettings({
+        domain,
+        allowHttp: false,
+        timeoutMs: 30000,
+      })
+      expect(result).toBeInstanceOf(BillIssuerTomlNotFoundError)
+    })
+
+    test("should return a BillIssuerTomlError if required settings are missing", async () => {
       mockTomlAxiosGet(
         "AUTH_PUBLIC_KEY = 'EXAMPLEPUBLICKEY'\nORG_LOGO_URL = 'https://example.org/logo.png'",
       )
@@ -87,7 +94,7 @@ describe("BillService", () => {
       expect(result).toBeInstanceOf(BillIssuerTomlError)
     })
 
-    test("should throw an UnknownBillServiceError for unknown errors", async () => {
+    test("should return an UnknownBillServiceError for unknown errors", async () => {
       jest.spyOn(axios, "get").mockRejectedValue(new Error("An unknown error occurred"))
 
       const result = await service.resolveSettings({
@@ -293,10 +300,12 @@ describe("BillService", () => {
       expect(result).toBeInstanceOf(BillNotFoundError)
       expect(result).toHaveProperty("message", "Bill not found")
       expect(axios.put).toHaveBeenCalledTimes(1)
-      expect(axios.put).toHaveBeenCalledWith("https://blink.example.org/api/bills/", {
-        reference: "valid-ref",
-        status: BillPaymentStatus.Paid,
-      })
+      expect(axios.put).toHaveBeenCalledWith(
+        "https://blink.example.org/api/bills/valid-ref",
+        {
+          status: BillPaymentStatus.Paid,
+        },
+      )
     })
 
     test("should return UnknownBillServiceError for a server error", async () => {
@@ -305,10 +314,12 @@ describe("BillService", () => {
       expect(result).toBeInstanceOf(UnknownBillServiceError)
       expect(result).toHaveProperty("message", "Invalid data")
       expect(axios.put).toHaveBeenCalledTimes(1)
-      expect(axios.put).toHaveBeenCalledWith("https://blink.example.org/api/bills/", {
-        reference: "valid-ref",
-        status: BillPaymentStatus.Paid,
-      })
+      expect(axios.put).toHaveBeenCalledWith(
+        "https://blink.example.org/api/bills/valid-ref",
+        {
+          status: BillPaymentStatus.Paid,
+        },
+      )
     })
 
     test("should return InvalidBillError for invalid bill reference", async () => {
@@ -324,10 +335,12 @@ describe("BillService", () => {
       expect(result).toBeInstanceOf(InvalidBillError)
       expect(result).toHaveProperty("message", "Invalid reference")
       expect(axios.put).toHaveBeenCalledTimes(1)
-      expect(axios.put).toHaveBeenCalledWith("https://blink.example.org/api/bills/", {
-        reference: "valid-ref",
-        status: BillPaymentStatus.Paid,
-      })
+      expect(axios.put).toHaveBeenCalledWith(
+        "https://blink.example.org/api/bills/valid-ref",
+        {
+          status: BillPaymentStatus.Paid,
+        },
+      )
     })
 
     test("should return BillStatusUpdateError for not updated bill status", async () => {
@@ -343,10 +356,12 @@ describe("BillService", () => {
       expect(result).toBeInstanceOf(BillStatusUpdateError)
       expect(result).toHaveProperty("message", "Status was not updated")
       expect(axios.put).toHaveBeenCalledTimes(1)
-      expect(axios.put).toHaveBeenCalledWith("https://blink.example.org/api/bills/", {
-        reference: "valid-ref",
-        status: BillPaymentStatus.Paid,
-      })
+      expect(axios.put).toHaveBeenCalledWith(
+        "https://blink.example.org/api/bills/valid-ref",
+        {
+          status: BillPaymentStatus.Paid,
+        },
+      )
     })
   })
 })

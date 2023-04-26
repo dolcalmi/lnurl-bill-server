@@ -15,6 +15,7 @@ module.exports = {
     "^@domain/(.*)$": ["<rootDir>src/domain/$1"],
     "^@services/(.*)$": ["<rootDir>src/services/$1"],
     "^@servers/(.*)$": ["<rootDir>src/servers/$1"],
+    "^@utils$": ["<rootDir>src/utils/index"],
     "^test/(.*)$": ["<rootDir>test/$1"],
   },
 }
