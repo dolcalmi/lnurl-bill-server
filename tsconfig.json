@@ -10,7 +10,8 @@
       "@app": ["src/app/index"],
       "@domain/*": ["src/domain/*"],
       "@services/*": ["src/services/*"],
-      "@servers/*": ["src/servers/*"]
+      "@servers/*": ["src/servers/*"],
+      "@utils": ["src/utils/index"]
     },
     "resolveJsonModule": true,
     "sourceMap": true,

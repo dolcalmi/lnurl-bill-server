@@ -1,0 +1,5 @@
+AUTH_PUBLIC_KEY = "EXAMPLEPUBLICKEY"
+ORG_NAME = "Testing Organization"
+BILL_SERVER_URL = "http://localhost:3001/api/v1"
+ORG_LN_ADDRESS = "testing@blink.sv"
+ORG_LOGO_URL = "http://blink.localhost/logo.png"

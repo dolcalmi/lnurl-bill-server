@@ -1,18 +1,18 @@
 import { LnInvoiceStatus } from "@domain/shared"
 import { isBillPayment } from "@domain/bill-payment"
+import { BillPaymentStatus, areBillDetailsEqual } from "@domain/bill"
 import { BillAlreadyPaidError, BillOverdueError } from "@domain/bill/errors"
 import { BillPaymentNotFoundRepositoryError } from "@domain/bill-payment/errors"
 
 import { BillService } from "@services/bill"
 import { GaloyService } from "@services/galoy"
 import { BillPaymentRepository } from "@services/database"
-import { BillPaymentStatus, areBillDetailsEqual } from "@domain/bill"
+
+import { createHash, createLnurlMetadata } from "@utils"
 
 export const createPayment = async ({
   domain,
   reference,
-  descriptionHash,
-  memo,
 }: CreatePaymentArgs): Promise<BillPayment | ApplicationError> => {
   const billService = BillService()
   const galoyService = GaloyService()
@@ -52,10 +52,14 @@ export const createPayment = async ({
   const billServiceSettings = await billService.resolveSettings({ domain })
   if (billServiceSettings instanceof Error) return billServiceSettings
 
+  const identifier = `${bill.reference}@${domain}`
+  const description = `${bill.description}` as GaloyMemo
+  const metadata = createLnurlMetadata({ description, identifier })
+  const descriptionHash = createHash(metadata) as GaloyDescriptionHash
   const invoice = await galoyService.createInvoice({
     username: billServiceSettings.username,
     amount: bill.amount,
-    memo: (memo || bill.description) as GaloyMemo,
+    memo: description,
     descriptionHash,
   })
   if (invoice instanceof Error) return invoice

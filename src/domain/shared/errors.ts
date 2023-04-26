@@ -17,6 +17,7 @@ export class DomainError extends Error {
 }
 
 export class ValidationError extends DomainError {}
+export class InvalidInvoiceAmountError extends ValidationError {}
 export class InvalidLnInvoiceStatusError extends ValidationError {}
 
 export class RepositoryError extends DomainError {}

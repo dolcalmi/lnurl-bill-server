@@ -25,6 +25,7 @@ export const BillPaymentRepository = (): IBillPaymentRepository => {
         .select()
         .where({ domain, reference, period })
         .first<DbBillPaymentRecord | undefined>()
+
       if (!billPayment) return new BillPaymentNotFoundRepositoryError()
 
       return dbRecordToBillPayment(billPayment)
@@ -77,9 +78,11 @@ export const BillPaymentRepository = (): IBillPaymentRepository => {
   ): Promise<BillPayment | BillPaymentRepositoryError> => {
     try {
       const serializedBillPayment = serializeBillPayment(billPayment)
-      const result = await queryBuilder(tableName).insert(serializedBillPayment)
+      const result = await queryBuilder(tableName)
+        .insert(serializedBillPayment)
+        .returning("reference")
 
-      const persisted = result && result[0] === 1
+      const persisted = result && result.length > 0
       if (!persisted) return new BillPaymentNotPersistedRepositoryError()
 
       return billPayment
@@ -152,16 +155,19 @@ const dbRecordToBillPayment = (result: DbBillPaymentRecord): BillPayment => ({
     : undefined,
 })
 
-const toBill = (json: JSONObject): Bill => ({
-  reference: json.reference as BillRef,
-  period: json.period as BillPeriod,
-  amount: {
-    amount: BigInt(`${json.amount}`),
-    currency: json.currency as WalletCurrency,
-  },
-  description: (json.description || "") as BillDescription,
-  status: json.status as BillPaymentStatus,
-})
+const toBill = (json: JSONObject): Bill => {
+  const { amount, currency } = json.amount as JSONObject
+  return {
+    reference: json.reference as BillRef,
+    period: json.period as BillPeriod,
+    amount: {
+      amount: BigInt(`${amount}`),
+      currency: currency as WalletCurrency,
+    },
+    description: (json.description || "") as BillDescription,
+    status: json.status as BillPaymentStatus,
+  }
+}
 
 const parseBillPaymentRepositoryError = (
   err: Error | string,

@@ -1,0 +1,142 @@
+{
+  "uuid": "4f073abd-6bac-4d26-bbb2-eba7338870f8",
+  "lastMigration": 27,
+  "name": "Bill server api",
+  "endpointPrefix": "",
+  "latency": 0,
+  "port": 3001,
+  "hostname": "",
+  "folders": [],
+  "routes": [
+    {
+      "uuid": "0ba7678c-9c0f-4a44-a543-be85bd0282cc",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "api/v1/bills/:id",
+      "responses": [
+        {
+          "uuid": "8d311abb-9777-4766-9ced-585bfd225602",
+          "body": "{\n   \"reference\":\"{{urlParam 'id'}}\",\n   \"period\":\"Apr-23\",\n   \"amount\":130,\n   \"currency\":\"USD\",\n   \"status\":\"PENDING\",\n   \"description\":\"GS - test for 1.3 usd\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true
+        }
+      ],
+      "enabled": true,
+      "responseMode": null
+    },
+    {
+      "uuid": "a599b9f2-2a72-49d9-ba6d-63ce856b0d28",
+      "type": "http",
+      "documentation": "",
+      "method": "put",
+      "endpoint": "api/v1/bills/:id",
+      "responses": [
+        {
+          "uuid": "48b158ef-5cf1-452d-9427-c45665e3ad31",
+          "body": "{\n   \"reference\":\"{{urlParam 'id'}}\",\n   \"period\":\"Apr-23\",\n   \"amount\":130,\n   \"currency\":\"USD\",\n   \"status\":\"PAID\",\n   \"description\":\"GS - test for 1.3 usd\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true
+        }
+      ],
+      "enabled": true,
+      "responseMode": null
+    },
+    {
+      "uuid": "1edff64c-f099-4a2d-8f95-e9afdf22899d",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": ".well-known/blink.toml",
+      "responses": [
+        {
+          "uuid": "a9d67ae5-6d4e-4be3-a629-11fcba8507f1",
+          "body": "AUTH_PUBLIC_KEY = \"EXAMPLEPUBLICKEY\"\nORG_NAME = \"Testing Organization\"\nBILL_SERVER_URL = \"http://localhost:3001/api/v1\"\nORG_LN_ADDRESS = \"testing\"\nORG_LOGO_URL = \"http://blink.localhost/logo.png\"\n",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true
+        }
+      ],
+      "enabled": true,
+      "responseMode": null
+    }
+  ],
+  "rootChildren": [
+    {
+      "type": "route",
+      "uuid": "0ba7678c-9c0f-4a44-a543-be85bd0282cc"
+    },
+    {
+      "type": "route",
+      "uuid": "a599b9f2-2a72-49d9-ba6d-63ce856b0d28"
+    },
+    {
+      "type": "route",
+      "uuid": "1edff64c-f099-4a2d-8f95-e9afdf22899d"
+    }
+  ],
+  "proxyMode": false,
+  "proxyHost": "",
+  "proxyRemovePrefix": false,
+  "tlsOptions": {
+    "enabled": false,
+    "type": "CERT",
+    "pfxPath": "",
+    "certPath": "",
+    "keyPath": "",
+    "caPath": "",
+    "passphrase": ""
+  },
+  "cors": true,
+  "headers": [
+    {
+      "key": "Content-Type",
+      "value": "application/json"
+    }
+  ],
+  "proxyReqHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "proxyResHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "data": []
+}

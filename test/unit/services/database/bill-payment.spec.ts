@@ -43,16 +43,20 @@ describe("BillPaymentRepository", () => {
         pendingResponse: {
           reference: "some-reference",
           period: "some-period",
-          amount: 1234,
-          currency: "BTC",
+          amount: {
+            amount: 1234,
+            currency: "BTC",
+          },
           description: "some-description",
           status: "PENDING",
         },
         paidResponse: {
           reference: "some-reference",
           period: "some-period",
-          amount: 1234,
-          currency: "BTC",
+          amount: {
+            amount: 1234,
+            currency: "BTC",
+          },
           description: "some-description",
           status: "PAID",
         },
@@ -144,8 +148,10 @@ describe("BillPaymentRepository", () => {
           pendingResponse: {
             reference,
             period,
-            amount: index * 1000,
-            currency: "BTC",
+            amount: {
+              amount: index * 1000,
+              currency: "BTC",
+            },
             description,
             status: "PENDING",
           },
@@ -236,7 +242,7 @@ describe("BillPaymentRepository", () => {
 
     test("should return the persisted BillPayment", async () => {
       tracker.on("query", (query) => {
-        query.response([1])
+        query.response([{ reference: "some-reference" }])
       })
 
       const result = await service.persistNew(billPayment)
@@ -246,7 +252,7 @@ describe("BillPaymentRepository", () => {
 
     test("should return BillPaymentNotPersistedRepositoryError when not persisted", async () => {
       tracker.on("query", (query) => {
-        query.response([0])
+        query.response([])
       })
 
       const result = await service.persistNew(billPayment)
