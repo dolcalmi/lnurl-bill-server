@@ -13,32 +13,34 @@ router.get("/lnurlp/:reference", async (req: Request, res: Response) => {
   const reference = req.params["reference"] as BillRef
   const domain: Domain | undefined = req.hostname as Domain
   if (!domain || !reference) {
-    res.status(400).json({ error: "Hostname or reference not found in the request" })
+    res
+      .status(400)
+      .json({ status: "ERROR", reason: "Hostname or reference not found in the request" })
     return
   }
 
   const billPayment = await Bill.createPayment({ domain, reference })
   if (billPayment instanceof BillAlreadyPaidError) {
-    res.status(502).json({ error: "Invoice already paid" })
+    res.status(502).json({ status: "ERROR", reason: "Invoice already paid" })
     return
   }
   if (billPayment instanceof Error) {
     res
       .status(500)
-      .json({ error: "An internal server error occurred", details: billPayment })
+      .json({ status: "ERROR", reason: billPayment.message || billPayment.name })
     return
   }
 
   const { amount } = req.query
   const minSendable = decodeInvoiceAmount(billPayment.invoice)
   if (billPayment instanceof InvalidInvoiceAmountError) {
-    res.status(404).json({ error: "Invalid invoice amount" })
+    res.status(404).json({ status: "ERROR", reason: "Invalid invoice amount" })
     return
   }
 
   if (amount) {
     if (Number(amount) !== minSendable) {
-      res.status(404).json({ error: "Invalid invoice amount" })
+      res.status(404).json({ status: "ERROR", reason: "Invalid invoice amount" })
       return
     }
     res.status(200).json({
