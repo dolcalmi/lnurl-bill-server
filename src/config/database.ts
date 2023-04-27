@@ -2,12 +2,23 @@ import { Knex } from "knex"
 
 import { databaseConfig } from "./process"
 
-const { host, port, user, password, database, poolMin, poolMax, debug } = databaseConfig
+const {
+  provider,
+  connectionString,
+  host,
+  port,
+  user,
+  password,
+  database,
+  poolMin,
+  poolMax,
+  debug,
+} = databaseConfig
 
 const config: Knex.Config = {
-  client: "pg",
+  client: provider,
   debug,
-  connection: {
+  connection: connectionString || {
     host,
     port,
     user,

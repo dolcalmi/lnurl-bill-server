@@ -6,6 +6,8 @@ export const tracingConfig = {
 }
 
 export const databaseConfig = {
+  provider: process.env.DB_PROVIDER || "pg",
+  connectionString: process.env.DB_CONNECTION_STRING || "",
   host: process.env.DB_HOST || "localhost",
   port: parseInt(process.env.DB_PORT || "", 10) || 5432,
   user: process.env.DB_USER || "lnurl-bill-server-usr",
