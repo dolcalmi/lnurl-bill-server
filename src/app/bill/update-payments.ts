@@ -11,9 +11,9 @@ import { GaloyService } from "@services/galoy"
 import { BillPaymentRepository } from "@services/database"
 import { recordExceptionInCurrentSpan, wrapAsyncToRunInSpan } from "@services/tracing"
 
-export const updatePayments = async (): Promise<true | ApplicationError> => {
+export const updatePayments = async (): Promise<number | ApplicationError> => {
   const billPaymentIterator = BillPaymentRepository().yieldPending({})
-
+  let updatedCount = 0
   for await (const billPayment of billPaymentIterator) {
     if (billPayment instanceof Error) {
       recordExceptionInCurrentSpan({ error: billPayment })
@@ -24,12 +24,13 @@ export const updatePayments = async (): Promise<true | ApplicationError> => {
     if (updateResult instanceof Error) {
       recordExceptionInCurrentSpan({ error: updateResult })
       baseLogger.error({ error: updateResult, billPayment }, "Failed to update payment")
+      continue
     }
-
+    updatedCount += 1
     baseLogger.info({ billPayment }, "Payment updated successfully")
   }
 
-  return true
+  return updatedCount
 }
 
 export const updatePayment = wrapAsyncToRunInSpan({
