@@ -142,7 +142,7 @@ const translateToBill = (data: GetBillResponse): Bill | InvalidBillError => {
     reference: data.reference as BillRef,
     period: data.period as BillPeriod,
     amount: {
-      amount: data.amount,
+      amount: BigInt(data.amount),
       currency: data.currency,
     },
     description: (data.description || "") as BillDescription,

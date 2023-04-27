@@ -3,6 +3,7 @@ import http from "http"
 import { baseLogger } from "@services/logger"
 
 import billServer from "./bill-server"
+import { startJobs, stopJobs } from "./jobs"
 
 // Normalize a port into a number, string, or false
 function normalizePort(val: string | number): number | string | boolean {
@@ -27,6 +28,8 @@ function onError(error: NodeJS.ErrnoException): void {
     throw error
   }
 
+  stopJobs()
+
   const bind = typeof port === "string" ? "Pipe " + port : "Port " + port
 
   // Handle specific listen errors with friendly messages
@@ -46,6 +49,8 @@ function onError(error: NodeJS.ErrnoException): void {
 
 // Event listener for HTTP server "listening" event
 function onListening(): void {
+  startJobs()
+
   const addr = server.address()
   const bind =
     typeof addr === "string" ? "pipe " + addr : `http://localhost:${addr?.port}`

@@ -35,10 +35,16 @@ type UsdCentsWalletAmount = WalletAmount<"USD">
 type ErrorLevel =
   typeof import("./errors").ErrorLevel[keyof typeof import("./errors").ErrorLevel]
 
+type JobError = import("./errors").JobError
 type ValidationError = import("./errors").ValidationError
 
 type PartialResult<T> = {
   result: T | null
   error?: Error
   partialResult: true
+}
+
+interface IJob {
+  start(): void | JobError
+  stop(): void | JobError
 }

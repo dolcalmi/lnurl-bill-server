@@ -20,6 +20,7 @@ export class ValidationError extends DomainError {}
 export class InvalidInvoiceAmountError extends ValidationError {}
 export class InvalidLnInvoiceStatusError extends ValidationError {}
 
+export class JobError extends DomainError {}
 export class RepositoryError extends DomainError {}
 export class DbConnectionError extends RepositoryError {
   level = ErrorLevel.Critical
