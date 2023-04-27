@@ -151,7 +151,7 @@ describe("BillService", () => {
         reference: "valid-ref",
         period: "Apr2023",
         amount: {
-          amount: 1000,
+          amount: 1000n,
           currency: "USD",
         },
         description: "Test Bill",
@@ -286,7 +286,7 @@ describe("BillService", () => {
         reference: "valid-ref",
         period: "Apr2023",
         amount: {
-          amount: 1000,
+          amount: 1000n,
           currency: "USD",
         },
         description: "Test Bill",
